@@ -1,0 +1,8 @@
+
+*.sln
+Intermediate/
+.vs/
+Binaries/
+DerivedDataCashe/
+Intermediate/
+Saved/
