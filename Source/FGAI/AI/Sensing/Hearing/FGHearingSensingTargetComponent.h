@@ -1,6 +1,6 @@
 #pragma once
 #include "Components/ActorComponent.h"
-#include "FGHearingSenseSettings.h"
+#include "DataAssets/FGHearingSenseSettings.h"
 #include "FGHearingSensingTargetComponent.generated.h"
 
 class AActor;
@@ -21,15 +21,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Hearing)
 	void GetHearingSensingTargets(TArray<UFGHearingSensingTargetComponent*>& OutTargets, float dB);
 	bool IsNoiseAudible();
-
+	
 	UPROPERTY(BlueprintAssignable)
 	FFGHearingSensingDelegate OnTargetHeard;
 	FFGNoiseData* NoiseSource;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Hearing)
 	UFGHearingSenseSettings* HearingSettings = nullptr;
-	
+
 	//TODO: Remove array
 	static TArray<UFGHearingSensingTargetComponent*> HearingSensingComponents;
-	TArray<AFGNoiseActor*> NoiseActors;
-
 };

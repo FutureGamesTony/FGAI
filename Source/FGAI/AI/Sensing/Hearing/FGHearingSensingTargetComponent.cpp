@@ -1,5 +1,5 @@
-#include "FGHearingSensingTargetComponent.h"
-#include "FGNoiseActor.h"
+﻿#include "FGHearingSensingTargetComponent.h"
+#include "Audio/FGNoiseActor.h"
 #include "Sound/SoundBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -19,10 +19,7 @@ void UFGHearingSensingTargetComponent::TickComponent(float DeltaTime, enum ELeve
 	if (source != nullptr)
 	{
 		if(IsNoiseAudible())
-		{ 
 			OnTargetHeard.Broadcast(*source);
-			//UGameplayStatics::PlaySoundAtLocation(GetWorld(), source->Sound, GetOwner()->GetActorLocation(), source->SoundRotation, source->dB);
-		}
 	}
 	source = nullptr;
 
@@ -30,37 +27,55 @@ void UFGHearingSensingTargetComponent::TickComponent(float DeltaTime, enum ELeve
 
 void UFGHearingSensingTargetComponent::NoiseHeard(FFGNoiseData& HearingResult)
 {
+	
+	static FFGNoiseData& result = HearingResult;
 	source = &HearingResult;
 
 	if (source == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("HearingResult was nullptr"));
 		return;
+	}
 
-	bool IsSoundSet = (source->Sound != nullptr) ? true : false;
-	if (!IsSoundSet)
+	if (source->NoiseInstigator == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("NoiseInstigator was not set!"));
+		return;
+	}
+	if (source->Sound == nullptr)
 		UE_LOG(LogTemp, Log, TEXT("Sound variable has not been set in: %s"), *source->NoiseInstigator->GetName());
 
 }
+
 bool UFGHearingSensingTargetComponent::IsNoiseAudible()
 {
-	
+	if (source == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("No Valid Data: "))
+			return false;
+	}
+	if (source->dB <= 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("dB has not been set in: %s"), *source->NoiseInstigator->GetName())
+		return false;
+	}
+	//SPL = Sound Pressure at Location (dB)
+	//SPL2 = SPL1 - 20 * log (R2 / R1)
+	static double distanceToSound = FVector::Dist(GetOwner()->GetActorLocation(), source->NoiseInstigator->GetActorLocation());
+	// R1 is set to 1 (m)
+	static double dBAtLocation = source->dB - (20 * log(distanceToSound * source->ConvertMtoCMMultiple()));
+
 	if(HearingSettings == nullptr)
 	{ 
 		UE_LOG(LogTemp, Log, TEXT("Hearing Settings Variable has not been set"))
 		return false;
 	}
-	if (source == nullptr)
-	{
-		UE_LOG(LogTemp, Log, TEXT("No Valid Data: "))
-		return false;
-	}
 	if (source->Sound == nullptr)
 		UE_LOG(LogTemp, Log, TEXT("Sound variable has not been set in: %s"), *source->NoiseInstigator->GetName())
 
-	double I = source->Watt / (4 * PI * UKismetMathLibrary::Square(FVector::Dist(GetOwner()->GetActorLocation(), source->NoiseInstigator->GetActorLocation())));
-	source->dB = UKismetMathLibrary::Log(I / source->IZero, 10.0f);
-	return source->dB > HearingSettings->dBEnterDetect;
-
+	return dBAtLocation > HearingSettings->dBEnterDetect;
 }
+
 void UFGHearingSensingTargetComponent::GetHearingSensingTargets(TArray<UFGHearingSensingTargetComponent*>& OutTargets, float dB)
 {
 	for (UFGHearingSensingTargetComponent* Target : HearingSensingComponents)
